@@ -1,0 +1,52 @@
+body {
+    /* prevent scroll bar for whole page */
+    overflow: hidden;
+}
+
+#mainModuleContainer {
+    width: 99vw; /* 100 causes small scroll bar*/
+    min-height: 100%;
+
+    /* Makes font the same across OS and Browswer */
+    font-size: small;
+    /* font-family: 'Times New Roman', Times, serif; */
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+#filePrompt {
+    visibility : hidden;
+    text-align: center;
+}
+
+.mainColumn {
+    float: left;
+    height: 91vh;
+    padding: .5%;
+    margin-top: 0vh;
+    border: 1px solid black;
+    box-shadow:  inset 0 0 8px #000000;
+    overflow: scroll;
+}
+
+#disassembleDiv {
+    width: 42%; /* only seem to get 95% total to use */
+}
+
+#resultDiv {
+    width: 55%; /* only seem to get 95% total to use */
+}
+
+#moduleSettings {
+    position: fixed;
+    width: 100%;
+    top: 0;
+    height: 6vh;
+}
+
+#moduleData {
+    margin-top: 6vh; /* same as moduleSettings */
+}
+
+.error {
+    background-color: #ffbbbb;
+}
