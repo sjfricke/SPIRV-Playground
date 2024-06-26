@@ -1,11 +1,19 @@
 const express = require('express');
 const fs = require('fs');
 const tmp = require('tmp');
-const hasbin = require('hasbin')
+const hasbin = require('hasbin');
+const commander = require('commander');
 const { promisify } = require('util');
 const exec = promisify(require('child_process').exec)
 const app = express()
 const port = 9000
+
+const program = new commander.Command();
+program
+  .option('--dxc <path>', 'Set path to dxc.exe you want to use (default - find in path).')
+  .option('--glslangValidator <path>', 'Set path to glslangValidator.exe you want to use (default - find in path).')
+  .option('--slangc <path>', 'Set path to slangc.exe you want to use (default - find in path).')
+  .parse(process.argv);
 
 app.use(express.static('.'))
 app.use(express.json())
@@ -14,18 +22,27 @@ app.get('/', (req, res) => {
     res.sendFile(`${__dirname}/index.html`);
 })
 
-var desiredTools = [
-    "dxc",
-    "glslangValidator",
-    "slangc",
-]
+var allTools = {
+    "dxc" : {
+        "exe"  : "dxc" // default
+    },
+    "glslangValidator" : {
+        "exe"  : "glslangValidator" // default
+    },
+    "slangc" : {
+        "exe"  : "slangc" // default
+    }
+}
 var availableTools = []
 
 function SetUpTools() {
-    for (let i = 0; i < desiredTools.length; i++) {
-        let tool = desiredTools[i];
-        if (hasbin.sync(tool)) {
+    const options = program.opts();
+    for (const tool in allTools) {
+        if (options[tool]) {
+            allTools[tool]["exe"] = options[tool]
             availableTools.push(tool)
+        } else if (hasbin.sync(tool)) {
+            availableTools.push(tool); // use default exe
         } else {
             console.log(`WARNING - could not find ${tool} in your path`)
         }
@@ -51,12 +68,15 @@ app.post('/compile', async (req, res) => {
 
     fs.writeFileSync(sourceFile.name, req.body.source);
 
-    var command = `${req.body.tool} ${req.body.flags} ${sourceFile.name}`;
+    var exe = allTools[req.body.tool]["exe"]
+    var command = `${exe} ${req.body.flags} ${sourceFile.name}`;
     if (req.body.tool == "glslangValidator") {
         command += " -H"
     }
 
+    // print command to allow people to copy and use it elsewhere
     console.log(command);
+
     try {
         result.spirv = (await exec(command)).stdout;
     } catch (error) {

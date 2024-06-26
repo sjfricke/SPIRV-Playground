@@ -8,19 +8,21 @@ It also runs locally for security, speed, and personal customization
 
 ## Setting up
 
-```
+```bash
 git clone --recursive git@github.com:sjfricke/SPIRV-Playground.git
 cd SPIRV-Playground
 
 npm install
 
+# This will check your `PATH` to find dxc/slang/glslang and use it on your machine to run
 node server.js
+
+# every tool can have its path manually set as well
+node server.js --slangc C:\path\to\slangc.exe --dxc C:\path\to\dxc.exe
 ```
-
-This will check your `PATH` to find dxc/slang/glslang and use it on your machine to run
-
-It also makes use of local storage and will save the last successful command ran
 
 ## Using
 
 Type/paste things on the left, hit `enter` and it will run and output on the right
+
+It also makes use of local storage and will save the last successful command ran
