@@ -3,6 +3,14 @@ body {
     overflow: hidden;
 }
 
+.row {
+    display: flex; /* equal height of the children */
+}
+
+.col {
+    flex: 1; /* additionally, equal width */
+}
+
 #mainModuleContainer {
     width: 99vw; /* 100 causes small scroll bar*/
     min-height: 100%;
@@ -49,4 +57,30 @@ body {
 
 .error {
     background-color: #ffbbbb;
+}
+
+#commandFlags {
+    width: 75%;
+}
+
+#settings {
+    width: 98.3%; /* Seems to be some implicit margin on left side */
+    padding-top: 3px;
+    height: 90%;
+    background: #555;
+    color: #f1f1f1;
+}
+
+#settingsLeft {
+    padding-left: 10px;
+    text-align: left;
+
+    display: grid;
+    grid-template-areas:
+    'collapseAllDiv largerTextArea opNamesArea insertConstantsArea';
+}
+
+#settingsRight {
+    padding-right: 10px;
+    text-align: right;
 }

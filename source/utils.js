@@ -21,5 +21,7 @@ function assert(statement, message) {
 }
 
 function spirvTextToHtml(text){
-    return `<pre style="margin-top:0px">${text.replaceAll("\n", "<br>")}</pre>`
+    // Use <pre> to have the insert spaces take effect
+    let altered = text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\n", "<br>");
+    return `<pre style="margin-top:0px">${altered}</pre>`
 }

@@ -14,29 +14,86 @@
 'use strict';
 
 // Used to populate when site starts
-function defaultSpirv() {
-    return `         OpCapability Shader
-         OpMemoryModel Logical GLSL450
-         OpEntryPoint GLCompute %main "main"
-         OpExecutionMode %main LocalSize 1 1 1
- %void = OpTypeVoid
- %func = OpTypeFunction %void
- %main = OpFunction %void None %func
-%label = OpLabel
-         OpReturn
-         OpFunctionEnd`;
+function defaultSource() {
+    return `
+Texture2D textureColor : register(t1);
+SamplerState samplerColor : register(s1);
+
+struct VSOutput
+{
+[[vk::location(0)]] float2 UV : TEXCOORD0;
+[[vk::location(1)]] float LodBias : TEXCOORD3;
+[[vk::location(2)]] float3 Normal : NORMAL0;
+[[vk::location(3)]] float3 ViewVec : TEXCOORD1;
+[[vk::location(4)]] float3 LightVec : TEXCOORD2;
+};
+
+float4 main(VSOutput input) : SV_TARGET
+{
+	float4 color = textureColor.SampleLevel(samplerColor, input.UV, input.LodBias);
+
+	float3 N = normalize(input.Normal);
+	float3 L = normalize(input.LightVec);
+	float3 V = normalize(input.ViewVec);
+	float3 R = reflect(-L, N);
+	float3 diffuse = max(dot(N, L), 0.0) * float3(1.0, 1.0, 1.0);
+	float specular = pow(max(dot(R, V), 0.0), 16.0) * color.a;
+
+	return float4(diffuse * color.rgb + specular, 1.0);
+}`;
+}
+
+function defaultFlags() {
+    return "-spirv -T ps_6_5 -E main -fspv-target-env=vulkan1.2";
 }
 
 // Sends all checkboxes out to handlers
 $(document).ready(function() {
     // Setup listeners for main input
-    $('#disassembleDiv')[0].innerHTML = spirvTextToHtml(defaultSpirv());
     $('#disassembleDiv').on('input', parseInput);
     $('#disassembleDiv').on('keypress', function(event) {
         if(event.which === 13 && !event.shiftKey) {
             event.preventDefault();
-            evaluateInput();
+            evaluateInputSource();
+            // evaluateInputSpirv();
+        }
+    });
+    $('#commandFlags').on('keypress', function(event) {
+        if(event.which === 13 && !event.shiftKey) {
+            event.preventDefault();
+            evaluateInputSource();
+            // evaluateInputSpirv();
         }
     });
 });
 
+async function loadTools() {
+    const response = await fetch("getTools", {method: 'GET'});
+    const tools = await response.json();
+
+    var select = document.getElementById("selectTool");
+    for (let i = 0; i < tools.length; i++) {
+        let option = document.createElement('option');
+        option.text = option.value = tools[i];
+        select.appendChild(option);
+    }
+
+    // Load previous settings of working run
+    var localSource = localStorage.getItem("spirvPlaygroundSource");
+    var localTool = localStorage.getItem("spirvPlaygroundTool");
+    var localFlags = localStorage.getItem("spirvPlaygroundFlags");
+
+    if (localSource) {
+        $('#disassembleDiv')[0].innerHTML = spirvTextToHtml(localSource);
+    } else {
+        $('#disassembleDiv')[0].innerHTML = spirvTextToHtml(defaultSource());
+    }
+    if (localTool) {
+        document.getElementById('selectTool').value = localTool;
+    }
+    if (localFlags) {
+        document.getElementById('commandFlags').value = localFlags;
+    } else {
+        document.getElementById('commandFlags').value = defaultFlags();
+    }
+}

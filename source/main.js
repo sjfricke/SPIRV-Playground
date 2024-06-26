@@ -33,7 +33,41 @@ function results(data) {
     console.log(data);
 }
 
-async function evaluateInput() {
+async function evaluateInputSource() {
+    const requestSettings = {
+        method: 'POST',
+        headers: {
+            'Content-Type': ' application/json'
+        },
+        body: JSON.stringify({
+            source : disassembleDiv.innerText,
+            tool : document.getElementById('selectTool').value,
+            flags : document.getElementById('commandFlags').value,
+        })
+    };
+
+    var result_div = document.getElementById('resultDiv');
+    result_div.innerHTML = ''
+    const response = await fetch("compile", requestSettings);
+    if (response.status != 200) {
+        // TODO - Handle error
+    }
+    const data = await response.json();
+
+    if (data.success) {
+        result_div.innerHTML = spirvTextToHtml(data.spirv);
+        // save last good items
+        localStorage.setItem("spirvPlaygroundSource", disassembleDiv.innerText);
+        localStorage.setItem("spirvPlaygroundTool", document.getElementById('selectTool').value);
+        localStorage.setItem("spirvPlaygroundFlags", document.getElementById('commandFlags').value);
+    } else if (data.error.stderr.length > 0) {
+        result_div.innerHTML = spirvTextToHtml(data.error.stderr);
+    } else {
+        result_div.innerHTML = spirvTextToHtml(data.error.stdout);
+    }
+}
+
+async function evaluateInputSpirv() {
     const requestSettings = {
         method: 'POST',
         headers: {
@@ -50,7 +84,6 @@ async function evaluateInput() {
     const data = await response.json();
 
     if (data.success) {
-        // Use <pre> to have the insert spaces take effect
         document.getElementById('resultDiv').innerHTML = spirvTextToHtml(data.spirv);
     } else if (!data.commands.as) {
         let line = parseInt(data.error.stderr.split(':')[1]) - 1
@@ -66,6 +99,12 @@ async function evaluateInput() {
     } else if (!data.commands.dis) {
         console.log("Failed spirv-dis");
     }
+}
+
+// main entrypoint
+function loadPlayground(spirvHeaderPath) {
+    loadSpirv(spirvHeaderPath);
+    loadTools();
 }
 
 // a[5] = a[5].substring(0, 9) + '<span class="error">' + a[5].substring(9, 23) + '</span>' + a[5].substring(23, a[5].length)
