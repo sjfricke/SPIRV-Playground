@@ -34,19 +34,16 @@ function results(data) {
 }
 
 async function evaluateInputSource() {
+    const selectedTool = document.getElementById('selectTool').value;
+    const commandFlags = document.getElementById('commandFlags').value;
+
     const requestSettings = {
         method: 'POST',
-        headers: {
-            'Content-Type': ' application/json'
-        },
-        body: JSON.stringify({
-            source : disassembleDiv.innerText,
-            tool : document.getElementById('selectTool').value,
-            flags : document.getElementById('commandFlags').value,
-        })
+        headers: {'Content-Type': ' application/json'},
+        body: JSON.stringify({source: disassembleDiv.innerText, tool: selectedTool, flags: commandFlags})
     };
 
-    var result_div = document.getElementById('resultDiv');
+    var result_div = document.getElementById('resultText');
     result_div.innerHTML = ''
     const response = await fetch("compile", requestSettings);
     if (response.status != 200) {
@@ -55,11 +52,15 @@ async function evaluateInputSource() {
     const data = await response.json();
 
     if (data.success) {
-        result_div.innerHTML = spirvTextToHtml(data.spirv);
+        if (selectedTool == 'spirv-val') {
+            result_div.innerHTML = 'VALID SPIR-V'
+        } else {
+            result_div.innerHTML = spirvTextToHtml(data.output);
+        }
         // save last good items
-        localStorage.setItem("spirvPlaygroundSource", disassembleDiv.innerText);
-        localStorage.setItem("spirvPlaygroundTool", document.getElementById('selectTool').value);
-        localStorage.setItem("spirvPlaygroundFlags", document.getElementById('commandFlags').value);
+        localStorage.setItem('tool', selectedTool);
+        localStorage.setItem('source-' + selectedTool, disassembleDiv.innerText);
+        localStorage.setItem('flags-' + selectedTool, commandFlags);
     } else if (data.error.stderr.length > 0) {
         result_div.innerHTML = spirvTextToHtml(data.error.stderr);
     } else {
@@ -76,7 +77,7 @@ async function evaluateInputSpirv() {
         body: JSON.stringify({ spirv : disassembleDiv.innerText, targetEnv : "vulkan1.3" })
     };
 
-    document.getElementById('resultDiv').innerHTML = ''
+    document.getElementById('resultText').innerHTML = ''
     const response = await fetch("validate", requestSettings);
     if (response.status != 200) {
         // TODO - Handle error
@@ -84,7 +85,7 @@ async function evaluateInputSpirv() {
     const data = await response.json();
 
     if (data.success) {
-        document.getElementById('resultDiv').innerHTML = spirvTextToHtml(data.spirv);
+        document.getElementById('resultText').innerHTML = spirvTextToHtml(data.spirv);
     } else if (!data.commands.as) {
         let line = parseInt(data.error.stderr.split(':')[1]) - 1
         let temp = disassembleDiv.innerText.split('\n')

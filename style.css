@@ -29,7 +29,6 @@ body {
 .mainColumn {
     float: left;
     height: 91vh;
-    padding: .5%;
     margin-top: 0vh;
     border: 1px solid black;
     box-shadow:  inset 0 0 8px #000000;
@@ -38,10 +37,30 @@ body {
 
 #disassembleDiv {
     width: 42%; /* only seem to get 95% total to use */
+    padding: .5%;
 }
 
 #resultDiv {
     width: 55%; /* only seem to get 95% total to use */
+    padding-bottom: 1%; /* make up for not having top padding (for button) */
+}
+
+#resultText {
+    width: 55%; /* only seem to get 95% total to use */
+    padding-top: 0.5%;
+    margin-bottom: 0.5%;
+    padding-left: 1%;
+    padding-right: 1%;
+}
+
+.customButton {
+    width: 100%;
+    background: lightsteelblue;
+    border: 0;
+}
+
+.customButton:hover {
+    background : steelblue;
 }
 
 #moduleSettings {
@@ -49,6 +68,10 @@ body {
     width: 100%;
     top: 0;
     height: 6vh;
+}
+
+.settingLabel {
+    padding-left: 10px;
 }
 
 #moduleData {
@@ -83,4 +106,16 @@ body {
 #settingsRight {
     padding-right: 10px;
     text-align: right;
+}
+
+#alertBox {
+    /* start hidden */
+    display: none;
+    position: absolute;
+    top: 5%;
+    text-align: center;
+    background: #ffea78;
+    left: 45%;
+    padding: 15px;
+    border-radius: 10px;
 }
