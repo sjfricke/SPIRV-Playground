@@ -5,6 +5,7 @@
     <meta charset="utf-8">
     <title>SPIR-V Playground</title>
     <link rel="stylesheet" type="text/css" href="style.css">
+    <link rel="stylesheet" type="text/css" href="lib/codemirror/codemirror.css">
 </head>
 
 <body onload="loadPlayground('lib/SPIRV-Headers/include/spirv/unified1/')">
@@ -21,10 +22,11 @@
         </div>
 
         <div id="moduleData">
-            <div class="mainColumn" id="disassembleDiv" contenteditable="true" spellcheck="false" tabindex="-1" draggable="false"></div>
+            <div class="mainColumn" id="inputEditorDiv">
+            </div>
             <div class="mainColumn" id="resultDiv">
                 <button id="copyToClipboard" class="customButton">Copy To Clipboard</button>
-                <div id="resultText"></div>
+                <div id="outputEditorDiv"></div>
             </div>
         </div>
     </div>
@@ -32,6 +34,14 @@
     <div id="alertBox"></div>
 
     <script src="lib/jquery-3.5.1.min.js"></script>
+
+    <script src="lib/codemirror/codemirror.js"></script>
+    <script src="lib/codemirror/active-line.js"></script>
+    <script src="lib/codemirror/matchbrackets.js"></script>
+    <script src="source/syntaxHighlighting/clike.js"></script>
+    <script src="source/syntaxHighlighting/codemirror-mode-glsl.js"></script>
+    <script src="source/syntaxHighlighting/codemirror-mode-hlsl.js"></script>
+    <script src="source/syntaxHighlighting/codemirror-mode-spirv.js"></script>
 
     <script src="source/utils.js"></script>
     <script src="source/defaults.js"></script>

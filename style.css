@@ -35,7 +35,7 @@ body {
     overflow: scroll;
 }
 
-#disassembleDiv {
+#inputEditorDiv {
     width: 42%; /* only seem to get 95% total to use */
     padding: .5%;
 }

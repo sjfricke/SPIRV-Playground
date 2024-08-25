@@ -1,4 +1,4 @@
-// Copyright (c) 2021-2023 The Khronos Group Inc.
+// Copyright (c) 2024 The Khronos Group Inc.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,8 +20,11 @@ function assert(statement, message) {
     }
 }
 
-function spirvTextToHtml(text){
-    // Use <pre> to have the insert spaces take effect
-    let altered = text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll("\n", "<br>");
-    return `<pre style="margin-top:0px">${altered}</pre>`
+function setAlertBox(message, ms) {
+    let alertBox = document.getElementById('alertBox');
+    alertBox.innerHTML = message;
+    alertBox.style.display = 'block';
+    setTimeout(function() {
+        alertBox.style.display = 'none';
+    }, ms);
 }

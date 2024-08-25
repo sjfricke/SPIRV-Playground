@@ -1,22 +1,19 @@
-// Sends all checkboxes out to handlers
-$(document).ready(function() {
-    // Setup listeners for main input
-    $('#disassembleDiv').on('input', parseInput);
-    $('#disassembleDiv').on('keypress', function(event) {
-        if(event.which === 13 && !event.shiftKey) {
-            event.preventDefault();
+function loadKeyHooks() {
+    inputEditor.setOption('extraKeys', {
+        Enter: function() {
             evaluateInputSource();
-            // evaluateInputSpirv();
         }
     });
+
     $('#commandFlags').on('keypress', function(event) {
-        if(event.which === 13 && !event.shiftKey) {
+        if (event.which === 13) {  // Enter
             event.preventDefault();
             evaluateInputSource();
-            // evaluateInputSpirv();
         }
     });
-});
+
+    // inputEditor.on('change', function() {})
+};
 
 async function loadTools() {
     const response = await fetch("getTools", {method: 'GET'});
@@ -33,10 +30,13 @@ async function loadTools() {
     var localTool = localStorage.getItem('tool');
     var startingTool = (localTool) ? localTool : tools[0];
     setSavedValues(startingTool);
+    // Set on first time
+    inputEditor.setOption('mode', getSyntaxHighlighting(startingTool));
 
     // Wait until everything is set to re-run on load
     document.getElementById('selectTool').onchange = function(element) {
         setSavedValues(element.target.value);
+        inputEditor.setOption('mode', getSyntaxHighlighting(element.target.value));
     };
 }
 
@@ -46,28 +46,28 @@ function setSavedValues(tool) {
 
     document.getElementById('selectTool').value = tool;
 
-    if (localSource) {
-        $('#disassembleDiv')[0].innerHTML = spirvTextToHtml(localSource);
-    } else {
-        $('#disassembleDiv')[0].innerHTML = spirvTextToHtml(defaultSource(tool));
-    }
-    if (localFlags) {
-        document.getElementById('commandFlags').value = localFlags;
-    } else {
-        document.getElementById('commandFlags').value = defaultFlags(tool);
-    }
+    inputEditor.setValue(localSource ? localSource : defaultSource(tool));
+    document.getElementById('commandFlags').value = localFlags ? localFlags : defaultFlags(tool);
 }
 
 $('#copyToClipboard').on('click', function() {
-    let clipboard = document.getElementById('resultText').innerText;
+    let clipboard = outputEditor.getValue();
     if (clipboard.length != 0) {
-        navigator.clipboard.writeText(document.getElementById('resultText').innerText);
-        document.getElementById('alertBox').innerHTML = 'copied to clipborad!';
+        navigator.clipboard.writeText(clipboard);
+        setAlertBox('copied to clipborad!', 2000);
     } else {
-        document.getElementById('alertBox').innerHTML = 'no text to copy!';
+        setAlertBox('no text to copy!', 2000);
     }
-    document.getElementById('alertBox').style.display = 'block';
-    setTimeout(function() {
-        document.getElementById('alertBox').style.display = 'none';
-    }, 1000);
 });
+
+function getSyntaxHighlighting(tool) {
+    if (tool == 'glslangValidator') {
+        return 'x-shader/glsl'
+    } else if (tool == 'dxc') {
+        return 'x-shader/hlsl'
+    } else if (tool == 'slangc') {
+        return 'x-shader/hlsl'
+    } else {
+        return 'text/x-spirv'
+    }
+}
