@@ -25,84 +25,83 @@ app.get('/', (req, res) => {
     res.sendFile(`${__dirname}/index.html`);
 })
 
-var allTools =
-    {
-        'dxc': {
-            'found': false,
-            'exe': 'dxc',  // default
-            'repo': 'DirectXShaderCompiler',
-            'public': true
-        },
-        'glslangValidator': {
-            'found': false,
-            'exe': 'glslangValidator',  // default
-            'repo': 'glslang',
-            'public': true
-        },
-        'slangc': {
-            'found': false,
-            'exe': 'slangc',  // default
-            'repo': 'slang',
-            'public': true
-        },
-        'spirv-cross': {
-            'found': false,
-            'exe': 'spirv-cross',  // default
-            'repo': 'SPIRV-Cross',
-            'public': true
-        },
-        'spirv-val': {
-            'found': false,
-            'exe': 'spirv-val',  // default
-            'repo': 'SPIRV-Tools',
-            'public': true
-        },
-        'spirv-opt': {
-            'found': false,
-            'exe': 'spirv-opt',  // default
-            'repo': 'SPIRV-Tools',
-            'public': true
-        },
-        'spirv-as': {
-            'found': false,
-            'exe': 'spirv-opt',  // default
-            'repo': 'SPIRV-Tools',
-            'public': false
-        },
-        'spirv-dis': {
-            'found': false,
-            'exe': 'spirv-opt',  // default
-            'repo': 'SPIRV-Tools',
-            'public': false
-        },
-    }
+var allTools = {
+    'dxc': {
+        'found': false,
+        'exe': 'dxc',  // default
+        'repo': 'DirectXShaderCompiler',
+        'public': true
+    },
+    'glslangValidator': {
+        'found': false,
+        'exe': 'glslangValidator',  // default
+        'repo': 'glslang',
+        'public': true
+    },
+    'slangc': {
+        'found': false,
+        'exe': 'slangc',  // default
+        'repo': 'slang',
+        'public': true
+    },
+    'spirv-cross': {
+        'found': false,
+        'exe': 'spirv-cross',  // default
+        'repo': 'SPIRV-Cross',
+        'public': true
+    },
+    'spirv-val': {
+        'found': false,
+        'exe': 'spirv-val',  // default
+        'repo': 'SPIRV-Tools',
+        'public': true
+    },
+    'spirv-opt': {
+        'found': false,
+        'exe': 'spirv-opt',  // default
+        'repo': 'SPIRV-Tools',
+        'public': true
+    },
+    'spirv-as': {
+        'found': false,
+        'exe': 'spirv-opt',  // default
+        'repo': 'SPIRV-Tools',
+        'public': false
+    },
+    'spirv-dis': {
+        'found': false,
+        'exe': 'spirv-opt',  // default
+        'repo': 'SPIRV-Tools',
+        'public': false
+    },
+};
 
-    function SetUpTools() {
-        const options = program.opts();
-        for (const tool in allTools) {
-            if (allTools[tool].repo == 'SPIRV-Tools' && options['SPIRVTools']) {
-                allTools[tool]['exe'] = options['SPIRVTools'] + tool
-                allTools[tool]['found'] = true;
-            } else if (options[tool]) {
-                allTools[tool]["exe"] = options[tool]
-                allTools[tool]['found'] = true;
-            } else if (hasbin.sync(tool)) {
-                allTools[tool]['found'] = true;  // use default exe
-            } else {
-                console.log(`WARNING - could not find ${tool} in your path`)
-            }
+function SetUpTools() {
+    const options = program.opts();
+    for (const tool in allTools) {
+        if (allTools[tool].repo == 'SPIRV-Tools' && options['SPIRVTools']) {
+            allTools[tool]['exe'] = options['SPIRVTools'] + tool
+            allTools[tool]['found'] = true;
+        } else if (options[tool]) {
+            allTools[tool]['exe'] = options[tool]
+            allTools[tool]['found'] = true;
+        } else if (hasbin.sync(tool)) {
+            allTools[tool]['found'] = true;  // use default exe
+        } else {
+            console.log(`WARNING - could not find ${tool} in your path`)
         }
     }
+}
 
-    app.get('/getTools', async (req, res) => {
-        var availableTools = [];
-        for (const tool in allTools) {
-            if (allTools[tool]['public'] && allTools[tool]['found']) {
-                availableTools.push(tool)
-            }
+app.get('/getTools', async (req, res) => {
+    var availableTools = [];
+    for (const tool in allTools) {
+        if (allTools[tool]['public'] && allTools[tool]['found']) {
+            availableTools.push(tool)
         }
-        res.send(availableTools);
-    })
+    }
+    res.send(availableTools);
+});
 
 // Create a single temp file used every time
 const sourceFile = tmp.fileSync();
@@ -194,7 +193,7 @@ app.post('/compile', async (req, res) => {
     }
 
     res.send(result);
-})
+});
 
 app.post('/dissemble', async (req, res) => {
     const buffer = await new Promise((resolve, reject) => {
@@ -231,14 +230,13 @@ app.post('/dissemble', async (req, res) => {
     }
 
     res.send(result);
-})
-
+});
 
 app.listen(port, () => {
     SetUpTools();
     console.log(`\nSPIRV-Playground is live at http://localhost:${port}`);
     console.log(`-------------------------------------------------\n`);
-})
+});
 
 process.on('SIGTERM', shutDown);
 process.on('SIGINT', shutDown);

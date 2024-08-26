@@ -6,7 +6,11 @@
 
 It also runs locally for security, speed, and personal customization
 
+Another benefit is everything is saved locally so you can easily re-run previous things
+
 ## Setting up
+
+(First install https://nodejs.org/)
 
 ```bash
 git clone --recursive git@github.com:sjfricke/SPIRV-Playground.git
