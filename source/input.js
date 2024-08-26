@@ -130,3 +130,34 @@ function fileSelect(event) {
     reader.readAsArrayBuffer(event.target.files[0]);
 };
 fileSelector.addEventListener('change', fileSelect, false);
+
+// Assume single file
+function dropHandler(event) {
+    // Prevent default behavior (Prevent file from being opened)
+    event.preventDefault();
+    var file;
+    if (event.dataTransfer.items) {
+        // DataTransferItemList interface
+        assert(event.dataTransfer.items[0].kind === 'file', 'Can only load single files');
+        file = event.dataTransfer.items[0].getAsFile();
+    } else {
+        // DataTransfer interface
+        file = event.dataTransfer.files[0];
+    }
+    const reader = new FileReader();
+    reader.onload = function() {
+        const filename = (file) ? file.name : undefined;
+        fileSelected(reader.result, filename);
+    };
+    reader.readAsArrayBuffer(file);
+}
+const dropArea = document.getElementsByTagName('BODY')[0];
+dropArea.addEventListener('drop', dropHandler, false);
+dropArea.addEventListener('dragover', dragOverHandler, false);
+
+// This is needed or else the browser will try to download files
+function dragOverHandler(event) {
+    event.stopPropagation();
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';  // Explicitly show this is a copy.
+}
