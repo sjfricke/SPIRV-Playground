@@ -99,16 +99,24 @@ async function fileSelected(data, filename) {
         return;
     }
 
-    const requestSettings = {method: 'POST', headers: {'Content-Type': ' application/octet-stream'}, body: data};
-    const response = await fetch('dissemble', requestSettings).catch((error) => {
-        setAlertBox(error, 4000);
-    });
+    var spirvHeader = new Uint32Array(data, 0, 1);
+    // if SPIR-V file, get dissembly, else it is source HLL file
+    if (spirvHeader[0] == spirv.Meta.MagicNumber) {
+        const requestSettings = {method: 'POST', headers: {'Content-Type': ' application/octet-stream'}, body: data};
+        const response = await fetch('dissemble', requestSettings).catch((error) => {
+            setAlertBox(error, 4000);
+        });
 
-    const dissembly = await response.json();
-    if (dissembly.success) {
-        inputEditor.setValue(dissembly.data);
+        const dissembly = await response.json();
+        if (dissembly.success) {
+            inputEditor.setValue(dissembly.data);
+        } else {
+            setAlertBox('Error: ' + dissembly.data, 4000);
+        }
     } else {
-        setAlertBox('Error: ' + dissembly.data, 4000);
+        // Couldn't find a good way to check if the incoming file was just text, so convert back from an ArrayBuffer
+        let decoder = new TextDecoder('utf-8');
+        inputEditor.setValue(decoder.decode(data));
     }
 }
 
