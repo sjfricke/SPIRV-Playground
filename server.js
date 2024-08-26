@@ -146,7 +146,7 @@ app.post('/compile', async (req, res) => {
         const spirvTargetEnv = getSpirvTargetEnv(req.body.flags)
         try {
             // Just override temp file, no need to keep original disassembly
-            const asCommand = `spirv-as ${sourceFile.name} -o ${sourceFile.name} ${spirvTargetEnv}`;
+            const asCommand = `${allTools['spirv-as']['exe']} ${sourceFile.name} -o ${sourceFile.name} ${spirvTargetEnv}`;
             console.log(asCommand + '\n');
             await exec(asCommand);
         } catch (error) {
@@ -188,7 +188,7 @@ app.post('/compile', async (req, res) => {
 
     if (result.success && needsDissembling) {
         // need to get out to spirv
-        const disCommand = `spirv-dis ${sourceFile.name}`;
+        const disCommand = `${allTools['spirv-dis']['exe']} ${sourceFile.name}`;
         console.log(disCommand + '\n');
         result.output = (await exec(disCommand)).stdout;
     }
@@ -220,7 +220,7 @@ app.post('/dissemble', async (req, res) => {
     // Process the buffer or save it as a file
     var result = {'success': true, 'data': 'could not dissemble SPIR-V'};
 
-    const disCommand = `spirv-dis ${sourceFile.name}`;
+    const disCommand = `${allTools['spirv-dis']['exe']} ${sourceFile.name}`;
     console.log(disCommand + '\n');
 
     try {
