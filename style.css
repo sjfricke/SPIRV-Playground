@@ -44,13 +44,13 @@ body {
     width: 51%; /* only seem to get 95% total to use */
 }
 
-.customButton {
+#copyToClipboard {
     width: 100%;
     background: lightsteelblue;
     border: 0;
 }
 
-.customButton:hover {
+#copyToClipboard:hover {
     background : steelblue;
 }
 
@@ -58,7 +58,6 @@ body {
     position: fixed;
     width: 100%;
     top: 0;
-    height: 6vh;
 }
 
 .settingLabel {
@@ -69,34 +68,45 @@ body {
     margin-top: 6vh; /* same as moduleSettings */
 }
 
-.error {
-    background-color: #ffbbbb;
-}
-
 #commandFlags {
     width: 75%;
 }
 
-#settings {
+/* To use custom "new file load" button in settings */
+.hide {
+    display: none;
+}
+
+.settings {
     width: 98.3%; /* Seems to be some implicit margin on left side */
     padding-top: 3px;
-    height: 90%;
+    padding-left: 0.5%;
     background: #555;
     color: #f1f1f1;
 }
 
-#settingsLeft {
-    padding-left: 10px;
-    text-align: left;
-
-    display: grid;
-    grid-template-areas:
-    'collapseAllDiv largerTextArea opNamesArea insertConstantsArea';
+#settingTop {
 }
 
-#settingsRight {
-    padding-right: 10px;
-    text-align: right;
+#settingBottom {
+    padding-bottom: 0.5vh; /* Both fills in white gap and makes input bar have a bottom boarder now */
+}
+
+.settingButton {
+    display: inline-block;
+    padding: 1px 12px;
+    margin-right: 20px;
+    margin-bottom: 3px;
+    font-size: 13px;
+    color: #333333;
+    background-color: white;
+    text-align: center;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.error {
+    background-color: #ffbbbb;
 }
 
 #alertBox {

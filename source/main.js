@@ -16,6 +16,8 @@
 // Editor global objects
 var inputEditor;
 var outputEditor;
+// Editor global settings
+var editorFontSize = 14;  // px
 
 async function evaluateInputSource() {
     const selectedTool = document.getElementById('selectTool').value;
@@ -69,6 +71,10 @@ function loadPlayground(spirvHeaderPath) {
 
     loadTools();
     loadKeyHooks();
+
+    let localFontSize = localStorage.getItem('editorFontSize');
+    editorFontSize = localFontSize ? localFontSize : editorFontSize;  // set starting value on load
+    setFontSize(editorFontSize);
 
     const performanceEnd = performance.now();
     console.log('Start up time: ' + ((performanceEnd - performanceStart) / 1000).toFixed(3) + ' seconds');

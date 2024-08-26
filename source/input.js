@@ -71,3 +71,54 @@ function getSyntaxHighlighting(tool) {
         return 'text/x-spirv'
     }
 }
+
+$('#clearCache').on('click', function() {
+    localStorage.clear();
+    setAlertBox('Cache is cleared', 2000);
+});
+
+function setFontSize(px) {
+    $('.CodeMirror').css('fontSize', px + 'px');
+    localStorage.setItem('editorFontSize', px);
+}
+
+$('#largerText').on('click', function() {
+    editorFontSize++;
+    setFontSize(editorFontSize);
+});
+
+$('#smallerText').on('click', function() {
+    editorFontSize--;
+    setFontSize(editorFontSize);
+});
+
+// Load in file
+async function fileSelected(data, filename) {
+    if (data == undefined) {
+        alert('Error: Failed to read in file ' + filename);
+        return;
+    }
+
+    const requestSettings = {method: 'POST', headers: {'Content-Type': ' application/octet-stream'}, body: data};
+    const response = await fetch('dissemble', requestSettings).catch((error) => {
+        setAlertBox(error, 4000);
+    });
+
+    const dissembly = await response.json();
+    if (dissembly.success) {
+        inputEditor.setValue(dissembly.data);
+    } else {
+        setAlertBox('Error: ' + dissembly.data, 4000);
+    }
+}
+
+const fileSelector = document.getElementById('fileSelector');
+function fileSelect(event) {
+    const reader = new FileReader();
+    reader.onload = function() {
+        const filename = (event.target.files) ? event.target.files[0].name : undefined;
+        fileSelected(reader.result, filename);
+    };
+    reader.readAsArrayBuffer(event.target.files[0]);
+};
+fileSelector.addEventListener('change', fileSelect, false);

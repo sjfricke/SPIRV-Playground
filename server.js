@@ -137,9 +137,9 @@ app.post('/compile', async (req, res) => {
             'stderr': '',
         },
         'output': ''
-    }
+    };
 
-                 fs.writeFileSync(sourceFile.name, req.body.source);
+    fs.writeFileSync(sourceFile.name, req.body.source);
 
     // If input is disassembled SPIR-V, turn to binary first
     if (spirvInputTools.includes(req.body.tool)) {
@@ -195,6 +195,44 @@ app.post('/compile', async (req, res) => {
 
     res.send(result);
 })
+
+app.post('/dissemble', async (req, res) => {
+    const buffer = await new Promise((resolve, reject) => {
+        let data = [];
+
+        req.on('data', chunk => {
+            data.push(chunk);
+        });
+
+        req.on('end', () => {
+            // Concatenate the collected data chunks
+            const buffer = Buffer.concat(data);
+            resolve(buffer);
+        });
+
+        req.on('error', (err) => {
+            reject(err);
+        });
+    });
+
+    fs.writeFileSync(sourceFile.name, buffer);
+
+    // Process the buffer or save it as a file
+    var result = {'success': true, 'data': 'could not dissemble SPIR-V'};
+
+    const disCommand = `spirv-dis ${sourceFile.name}`;
+    console.log(disCommand + '\n');
+
+    try {
+        result.data = (await exec(disCommand)).stdout;
+    } catch (error) {
+        result.success = false
+        result.data = error.stderr;
+    }
+
+    res.send(result);
+})
+
 
 app.listen(port, () => {
     SetUpTools();

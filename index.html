@@ -12,7 +12,14 @@
 
     <div id="mainModuleContainer">
         <div id="moduleSettings">
-            <div id="settings">
+            <div class="settings" id="settingTop">
+                <input type="file" name="fileSelector" id="fileSelector" class="hide"/>
+                <label for="fileSelector" class="settingButton">Load SPIR-V file</label>
+                <button id="clearCache" class="settingButton">Clear Cache</button>
+                <button id="largerText" class="settingButton">Larger Text</button>
+                <button id="smallerText" class="settingButton">Smaller Text</button>
+            </div>
+            <div class="settings" id="settingBottom">
                 <label class="settingLabel" for="selectTool">Select Tool:</label>
                 <select id="selectTool">
                 </select>
@@ -25,7 +32,7 @@
             <div class="mainColumn codeEditor" id="inputEditorDiv">
             </div>
             <div class="mainColumn" id="resultDiv">
-                <button id="copyToClipboard" class="customButton">Copy To Clipboard</button>
+                <button id="copyToClipboard">Copy To Clipboard</button>
                 <div class="codeEditor" id="outputEditorDiv"></div>
             </div>
         </div>
