@@ -16,8 +16,10 @@ program.option('--dxc <path>', 'Set path to dxc.exe you want to use (default - f
     .option('--SPIRV-Tools <path>', 'Set path to binaries from SPIRV-Tools you want to use (default - find in path).')
     .parse(process.argv);
 
+
 app.use(express.static('.'))
-app.use(express.json())
+// SPIR-V disassembly is get very large
+app.use(express.json({limit: '50mb'}));
 
 app.get('/', (req, res) => {
     res.sendFile(`${__dirname}/index.html`);

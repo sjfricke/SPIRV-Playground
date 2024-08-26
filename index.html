@@ -4,8 +4,8 @@
 <head>
     <meta charset="utf-8">
     <title>SPIR-V Playground</title>
-    <link rel="stylesheet" type="text/css" href="style.css">
     <link rel="stylesheet" type="text/css" href="lib/codemirror/codemirror.css">
+    <link rel="stylesheet" type="text/css" href="style.css">
 </head>
 
 <body onload="loadPlayground('lib/SPIRV-Headers/include/spirv/unified1/')">
@@ -22,11 +22,11 @@
         </div>
 
         <div id="moduleData">
-            <div class="mainColumn" id="inputEditorDiv">
+            <div class="mainColumn codeEditor" id="inputEditorDiv">
             </div>
             <div class="mainColumn" id="resultDiv">
                 <button id="copyToClipboard" class="customButton">Copy To Clipboard</button>
-                <div id="outputEditorDiv"></div>
+                <div class="codeEditor" id="outputEditorDiv"></div>
             </div>
         </div>
     </div>
