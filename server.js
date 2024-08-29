@@ -14,6 +14,8 @@ program.option('--dxc <path>', 'Set path to dxc.exe you want to use (default - f
     .option('--glslangValidator <path>', 'Set path to glslangValidator.exe you want to use (default - find in path).')
     .option('--slangc <path>', 'Set path to slangc.exe you want to use (default - find in path).')
     .option('--SPIRV-Tools <path>', 'Set path to binaries from SPIRV-Tools you want to use (default - find in path).')
+    // Tools that might be less mainstream (aka, won't be found in the SDK)
+    .option('--gpuav <path>', 'Set path to binaries from GPU-AV Shader instrumentation offline tool.')
     .parse(process.argv);
 
 
@@ -64,30 +66,43 @@ var allTools = {
     },
     'spirv-as': {
         'found': false,
-        'exe': 'spirv-opt',  // default
+        'exe': 'spirv-as',  // default
         'repo': 'SPIRV-Tools',
         'public': false
     },
     'spirv-dis': {
         'found': false,
-        'exe': 'spirv-opt',  // default
+        'exe': 'spirv-dis',  // default
         'repo': 'SPIRV-Tools',
         'public': false
+    },
+    'gpuav': {
+        'found': false,
+        'exe': '',  // no default
+        'repo': 'Vulkan-ValidaitonLayers',
+        'public': true
     },
 };
 
 function SetUpTools() {
     const options = program.opts();
     for (const tool in allTools) {
-        if (allTools[tool].repo == 'SPIRV-Tools' && options['SPIRVTools']) {
-            allTools[tool]['exe'] = options['SPIRVTools'] + tool
-            allTools[tool]['found'] = true;
+        var item = allTools[tool];
+        if (item.repo == 'SPIRV-Tools' && options['SPIRVTools']) {
+            item['exe'] = options['SPIRVTools'] + tool
+            item['found'] = true;
         } else if (options[tool]) {
-            allTools[tool]['exe'] = options[tool]
-            allTools[tool]['found'] = true;
+            item['exe'] = options[tool]
+            item['found'] = true;
+
+            if (!fs.existsSync(item['exe']) || !fs.statSync((item['exe'])).isFile()) {
+                console.log(`ERROR - ${tool} executable path doesn't exists ${item['exe']}`)
+                process.exit()
+            }
         } else if (hasbin.sync(tool)) {
-            allTools[tool]['found'] = true;  // use default exe
-        } else {
+            item['found'] = true;  // use default exe
+        } else if (item['exe']) {
+            // Tool that have no default, don't need to give warning
             console.log(`WARNING - could not find ${tool} in your path`)
         }
     }
@@ -106,10 +121,11 @@ app.get('/getTools', async (req, res) => {
 // Create a single temp file used every time
 const sourceFile = tmp.fileSync();
 
-const spirvInputTools = [
-    'spirv-val',
-    'spirv-opt',
-    'spirv-cross',
+const needsAssembling = ['spirv-val', 'spirv-opt', 'spirv-cross', 'gpuav'];
+
+const needsDissembling = [
+    'glslangValidator',  // glslang outputs a dissembly not always recognized
+    'spirv-opt', 'gpuav'
 ];
 
 // This is a mess because spirv-opt needs the '=' when setting it but things like spirv-as needs it without the '='
@@ -141,7 +157,7 @@ app.post('/compile', async (req, res) => {
     fs.writeFileSync(sourceFile.name, req.body.source);
 
     // If input is disassembled SPIR-V, turn to binary first
-    if (spirvInputTools.includes(req.body.tool)) {
+    if (needsAssembling.includes(req.body.tool)) {
         const spirvTargetEnv = getSpirvTargetEnv(req.body.flags)
         try {
             // Just override temp file, no need to keep original disassembly
@@ -163,14 +179,15 @@ app.post('/compile', async (req, res) => {
         req.body.flags = req.body.flags.replace(/--target-env\s+(\S+)/g, '--target-env=$1');
     }
 
-    // spirv-opt only outputs the binary
-    // glslang outputs a dissembly not always recognized
-    const needsDissembling = req.body.tool == 'glslangValidator' || req.body.tool == 'spirv-opt';
-
     var exe = allTools[req.body.tool]['exe'];
     var command = `${exe} ${req.body.flags} ${sourceFile.name}`;
-    if (needsDissembling) {
+    if (needsDissembling.includes(req.body.tool)) {
         command += ` -o ${sourceFile.name}`
+    }
+
+    // Special case for tools that need it
+    if (req.body.tool == 'gpuav') {
+        command = `${exe} ${sourceFile.name} -o ${sourceFile.name} ${req.body.flags}`;
     }
 
     // print command to allow people to copy and use it elsewhere
@@ -185,7 +202,7 @@ app.post('/compile', async (req, res) => {
         result.error.stderr = error.stderr;
     }
 
-    if (result.success && needsDissembling) {
+    if (result.success && needsDissembling.includes(req.body.tool)) {
         // need to get out to spirv
         const disCommand = `${allTools['spirv-dis']['exe']} ${sourceFile.name}`;
         console.log(disCommand + '\n');

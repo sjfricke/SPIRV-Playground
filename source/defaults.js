@@ -146,6 +146,8 @@ function defaultFlags(tool) {
         return '-O --target-env vulkan1.2';
     } else if (tool == 'spirv-cross') {
         return '-V';
+    } else if (tool == 'gpuav') {
+        return '--debug-printf';
     } else {
         return '';
     }
