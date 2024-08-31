@@ -29,57 +29,84 @@ app.get('/', (req, res) => {
 
 var allTools = {
     'dxc': {
+        'name': 'dxc',
         'found': false,
         'exe': 'dxc',  // default
         'repo': 'DirectXShaderCompiler',
+        'input': 'text',
+        'output': 'text',
         'public': true
     },
     'glslangValidator': {
+        'name': 'glslangValidator',
         'found': false,
         'exe': 'glslangValidator',  // default
         'repo': 'glslang',
+        'input': 'text',
+        'output': 'spirv',  // glslang outputs a dissembly not always recognized
         'public': true
     },
     'slangc': {
+        'name': 'slangc',
         'found': false,
         'exe': 'slangc',  // default
         'repo': 'slang',
+        'input': 'text',
+        'output': 'text',
         'public': true
     },
     'spirv-cross': {
+        'name': 'spirv-cross',
         'found': false,
         'exe': 'spirv-cross',  // default
         'repo': 'SPIRV-Cross',
+        'input': 'spirv',
+        'output': 'text',
         'public': true
     },
     'spirv-val': {
+        'name': 'spirv-val',
         'found': false,
         'exe': 'spirv-val',  // default
         'repo': 'SPIRV-Tools',
+        'input': 'spirv',
+        'output': 'status',
         'public': true
     },
     'spirv-opt': {
+        'name': 'spirv-opt',
         'found': false,
         'exe': 'spirv-opt',  // default
         'repo': 'SPIRV-Tools',
+        'input': 'spirv',
+        'output': 'spirv',
         'public': true
     },
     'spirv-as': {
+        'name': 'spirv-as',
         'found': false,
         'exe': 'spirv-as',  // default
         'repo': 'SPIRV-Tools',
+        'input': 'text',
+        'output': 'spirv',
         'public': false
     },
     'spirv-dis': {
+        'name': 'spirv-dis',
         'found': false,
         'exe': 'spirv-dis',  // default
         'repo': 'SPIRV-Tools',
+        'input': 'spirv',
+        'output': 'text',
         'public': false
     },
     'gpuav': {
+        'name': 'gpuav',
         'found': false,
         'exe': '',  // no default
         'repo': 'Vulkan-ValidaitonLayers',
+        'input': 'spirv',
+        'output': 'spirv',
         'public': true
     },
 };
@@ -89,19 +116,19 @@ function SetUpTools() {
     for (const tool in allTools) {
         var item = allTools[tool];
         if (item.repo == 'SPIRV-Tools' && options['SPIRVTools']) {
-            item['exe'] = options['SPIRVTools'] + tool
-            item['found'] = true;
+            item.exe = options['SPIRVTools'] + tool
+            item.found = true;
         } else if (options[tool]) {
-            item['exe'] = options[tool]
-            item['found'] = true;
+            item.exe = options[tool]
+            item.found = true;
 
-            if (!fs.existsSync(item['exe']) || !fs.statSync((item['exe'])).isFile()) {
-                console.log(`ERROR - ${tool} executable path doesn't exists ${item['exe']}`)
+            if (!fs.existsSync(item.exe) || !fs.statSync((item.exe)).isFile()) {
+                console.log(`ERROR - ${tool} executable path doesn't exists ${item.exe}`)
                 process.exit()
             }
         } else if (hasbin.sync(tool)) {
-            item['found'] = true;  // use default exe
-        } else if (item['exe']) {
+            item.found = true;  // use default exe
+        } else if (item.exe) {
             // Tool that have no default, don't need to give warning
             console.log(`WARNING - could not find ${tool} in your path`)
         }
@@ -111,7 +138,7 @@ function SetUpTools() {
 app.get('/getTools', async (req, res) => {
     var availableTools = [];
     for (const tool in allTools) {
-        if (allTools[tool]['public'] && allTools[tool]['found']) {
+        if (allTools[tool].public && allTools[tool].found) {
             availableTools.push(tool)
         }
     }
@@ -120,13 +147,7 @@ app.get('/getTools', async (req, res) => {
 
 // Create a single temp file used every time
 const sourceFile = tmp.fileSync();
-
-const needsAssembling = ['spirv-val', 'spirv-opt', 'spirv-cross', 'gpuav'];
-
-const needsDissembling = [
-    'glslangValidator',  // glslang outputs a dissembly not always recognized
-    'spirv-opt', 'gpuav'
-];
+const displayFileName = '[INPUT FILE]';
 
 // This is a mess because spirv-opt needs the '=' when setting it but things like spirv-as needs it without the '='
 function getSpirvTargetEnv(flags) {
@@ -143,6 +164,25 @@ function getSpirvTargetEnv(flags) {
     return '';
 }
 
+function buildCommand(toolInfo, flags) {
+    if (toolInfo.name == 'spirv-opt') {
+        // spirv-opt needs the '=' between
+        flags = flags.replace(/--target-env\s+(\S+)/g, '--target-env=$1');
+    }
+
+    var command = `${toolInfo.exe} ${flags} ${sourceFile.name}`;
+    if (toolInfo.output == 'spirv') {
+        command += ` -o ${sourceFile.name}`
+    }
+
+    // Special case for tools that need it
+    if (toolInfo.name == 'gpuav') {
+        command = `${toolInfo.exe} ${sourceFile.name} -o ${sourceFile.name} ${flags}`;
+    }
+
+    return command;
+}
+
 app.post('/compile', async (req, res) => {
     var result = {
         'success': true,
@@ -156,55 +196,111 @@ app.post('/compile', async (req, res) => {
 
     fs.writeFileSync(sourceFile.name, req.body.source);
 
+    var toolInfo = allTools[req.body.tool];
+
     // If input is disassembled SPIR-V, turn to binary first
-    if (needsAssembling.includes(req.body.tool)) {
-        const spirvTargetEnv = getSpirvTargetEnv(req.body.flags)
+    if (toolInfo.input == 'spirv') {
+        const spirvTargetEnv = getSpirvTargetEnv(req.body.flags);
         try {
             // Just override temp file, no need to keep original disassembly
-            const asCommand = `${allTools['spirv-as']['exe']} ${sourceFile.name} -o ${sourceFile.name} ${spirvTargetEnv}`;
+            const asCommand = `${allTools['spirv-as'].exe} ${sourceFile.name} -o ${sourceFile.name} ${spirvTargetEnv}`;
             console.log(asCommand + '\n');
             await exec(asCommand);
         } catch (error) {
             result.success = false
-            result.error.cmd = error.cmd;
-            result.error.stdout = error.stdout;
-            result.error.stderr = error.stderr;
-            res.send(result);
-            return;
+            result.error.cmd = error.cmd.replaceAll(sourceFile.name, displayFileName);
+            result.error.stdout = error.stdout.replaceAll(sourceFile.name, displayFileName);
+            result.error.stderr = error.stderr.replaceAll(sourceFile.name, displayFileName);
+            return res.send(result);
         }
     }
 
-    if (req.body.tool == 'spirv-opt') {
-        // spirv-opt needs the '=' between
-        req.body.flags = req.body.flags.replace(/--target-env\s+(\S+)/g, '--target-env=$1');
-    }
-
-    var exe = allTools[req.body.tool]['exe'];
-    var command = `${exe} ${req.body.flags} ${sourceFile.name}`;
-    if (needsDissembling.includes(req.body.tool)) {
-        command += ` -o ${sourceFile.name}`
-    }
-
-    // Special case for tools that need it
-    if (req.body.tool == 'gpuav') {
-        command = `${exe} ${sourceFile.name} -o ${sourceFile.name} ${req.body.flags}`;
-    }
-
-    // print command to allow people to copy and use it elsewhere
-    console.log(command + '\n');
+    var command = buildCommand(toolInfo, req.body.flags);
 
     try {
+        // print command to allow people to copy and use it elsewhere
+        console.log(command + '\n');
         result.output = (await exec(command)).stdout;
     } catch (error) {
-        result.success = false
-        result.error.cmd = error.cmd;
-        result.error.stdout = error.stdout;
-        result.error.stderr = error.stderr;
+        result.success = false;
+        result.error.cmd = error.cmd.replaceAll(sourceFile.name, displayFileName);
+        result.error.stdout = error.stdout.replaceAll(sourceFile.name, displayFileName);
+        result.error.stderr = error.stderr.replaceAll(sourceFile.name, displayFileName);
+        return res.send(result);
     }
 
-    if (result.success && needsDissembling.includes(req.body.tool)) {
+    var lastTool = toolInfo;
+    if (req.body.tool2) {
+        var tool2Info = allTools[req.body.tool2];
+        if (tool2Info.input == 'text') {
+            result.success = false;
+            result.error.stderr = `Pipeline 2 can not use ${req.body.tool2} because the input is not SPIR-V`;
+            return res.send(result);
+        }
+        if (toolInfo.output == 'status') {
+            result.success = false;
+            result.error.stderr = `Pipeline 2 can not use ${req.body.tool2} because the the previous pipeline is ${req.body.tool1}`;
+            return res.send(result);
+        } else if (toolInfo.output == 'text') {
+            fs.writeFileSync(sourceFile.name, result.output);
+            const spirvTargetEnv = getSpirvTargetEnv(req.body.flags2)
+            const asCommand = `${allTools['spirv-as'].exe} ${sourceFile.name} -o ${sourceFile.name} ${spirvTargetEnv}`;
+            console.log(asCommand + '\n');
+            await exec(asCommand);  // TODO - error catch
+        }
+
+        try {
+            command = buildCommand(tool2Info, req.body.flags2);
+            console.log(command + '\n');
+            result.output = (await exec(command)).stdout;
+        } catch (error) {
+            result.success = false;
+            result.error.cmd = error.cmd.replaceAll(sourceFile.name, displayFileName);
+            result.error.stdout = error.stdout.replaceAll(sourceFile.name, displayFileName);
+            result.error.stderr = error.stderr.replaceAll(sourceFile.name, displayFileName);
+            return res.send(result);
+        }
+        lastTool = tool2Info;
+
+        if (req.body.tool3) {
+            var tool3Info = allTools[req.body.tool3];
+            if (tool3Info.input == 'text') {
+                result.success = false;
+                result.error.stderr = `Pipeline 3 can not use ${req.body.tool3} because the input is not SPIR-V`;
+                return res.send(result);
+            }
+
+            if (tool2Info.output == 'status') {
+                result.success = false;
+                result.error.stderr =
+                    `Pipeline 3 can not use ${req.body.tool3} because the the previous pipeline is ${req.body.tool2}`;
+                return res.send(result);
+            } else if (tool2Info.output == 'text') {
+                fs.writeFileSync(sourceFile.name, result.output);
+                const spirvTargetEnv = getSpirvTargetEnv(req.body.flags3)
+                const asCommand = `${allTools['spirv-as'].exe} ${sourceFile.name} -o ${sourceFile.name} ${spirvTargetEnv}`;
+                console.log(asCommand + '\n');
+                await exec(asCommand);  // TODO - error catch
+            }
+
+            try {
+                command = buildCommand(tool3Info, req.body.flags3);
+                console.log(command + '\n');
+                result.output = (await exec(command)).stdout;
+            } catch (error) {
+                result.success = false;
+                result.error.cmd = error.cmd.replaceAll(sourceFile.name, displayFileName);
+                result.error.stdout = error.stdout.replaceAll(sourceFile.name, displayFileName);
+                result.error.stderr = error.stderr.replaceAll(sourceFile.name, displayFileName);
+                return res.send(result);
+            }
+            lastTool = tool3Info;
+        }
+    }
+
+    if (result.success && lastTool.output == 'spirv') {
         // need to get out to spirv
-        const disCommand = `${allTools['spirv-dis']['exe']} ${sourceFile.name}`;
+        const disCommand = `${allTools['spirv-dis'].exe} ${sourceFile.name}`;
         console.log(disCommand + '\n');
         result.output = (await exec(disCommand)).stdout;
     }
@@ -236,7 +332,7 @@ app.post('/dissemble', async (req, res) => {
     // Process the buffer or save it as a file
     var result = {'success': true, 'data': 'could not dissemble SPIR-V'};
 
-    const disCommand = `${allTools['spirv-dis']['exe']} ${sourceFile.name}`;
+    const disCommand = `${allTools['spirv-dis'].exe} ${sourceFile.name}`;
     console.log(disCommand + '\n');
 
     try {

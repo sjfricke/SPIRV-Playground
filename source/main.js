@@ -22,11 +22,35 @@ var editorFontSize = 14;  // px
 async function evaluateInputSource() {
     const selectedTool = document.getElementById('selectTool').value;
     const commandFlags = document.getElementById('commandFlags').value;
+    var lastTool = selectedTool;
+
+    var selectedTool2 = undefined;
+    var commandFlags2 = undefined;
+    var selectedTool3 = undefined;
+    var commandFlags3 = undefined;
+    if (hasPipeline2()) {
+        selectedTool2 = document.getElementById('selectTool2').value;
+        commandFlags2 = document.getElementById('commandFlags2').value;
+        lastTool = selectedTool2;
+    }
+    if (hasPipeline3()) {
+        selectedTool3 = document.getElementById('selectTool3').value;
+        commandFlags3 = document.getElementById('commandFlags3').value;
+        lastTool = selectedTool3;
+    }
 
     const requestSettings = {
         method: 'POST',
         headers: {'Content-Type': ' application/json'},
-        body: JSON.stringify({source: inputEditor.getValue(), tool: selectedTool, flags: commandFlags})
+        body: JSON.stringify({
+            source: inputEditor.getValue(),
+            tool: selectedTool,
+            flags: commandFlags,
+            tool2: selectedTool2,
+            flags2: commandFlags2,
+            tool3: selectedTool3,
+            flags3: commandFlags3,
+        })
     };
 
     outputEditor.setValue('Processing ...')
@@ -35,9 +59,9 @@ async function evaluateInputSource() {
     });
 
     const data = await response.json();
-
+    console.log(data);
     if (data.success) {
-        if (selectedTool == 'spirv-val') {
+        if (lastTool == 'spirv-val') {
             outputEditor.setValue('VALID SPIR-V');
         } else {
             outputEditor.setValue(data.output);
@@ -46,10 +70,24 @@ async function evaluateInputSource() {
         localStorage.setItem('tool', selectedTool);
         localStorage.setItem('source-' + selectedTool, inputEditor.getValue());
         localStorage.setItem('flags-' + selectedTool, commandFlags);
-    } else if (data.error.stderr.length > 0) {
-        outputEditor.setValue(data.error.stderr);
+
+        if (hasPipeline2()) {
+            localStorage.setItem('tool2', selectedTool2);
+            localStorage.setItem('flags2-' + selectedTool2, commandFlags2);
+        }
+        if (hasPipeline3()) {
+            localStorage.setItem('tool3', selectedTool3);
+            localStorage.setItem('flags3-' + selectedTool3, commandFlags3);
+        }
+
     } else {
-        outputEditor.setValue(data.error.stdout);
+        var error = data.error.cmd + '\n-----------------------------------\n\n';
+        if (data.error.stderr.length > 0) {
+            error += data.error.stderr;
+        } else {
+            error += data.error.stdout;
+        }
+        outputEditor.setValue(error);
     }
 }
 
@@ -71,6 +109,7 @@ function loadPlayground(spirvHeaderPath) {
 
     loadTools();
     loadKeyHooks();
+    loadPipelines();
 
     let localFontSize = localStorage.getItem('editorFontSize');
     editorFontSize = localFontSize ? localFontSize : editorFontSize;  // set starting value on load
@@ -78,4 +117,11 @@ function loadPlayground(spirvHeaderPath) {
 
     const performanceEnd = performance.now();
     console.log('Start up time: ' + ((performanceEnd - performanceStart) / 1000).toFixed(3) + ' seconds');
+}
+
+function hasPipeline2() {
+    return document.getElementById('pipeline2').style.display != 'none';
+}
+function hasPipeline3() {
+    return document.getElementById('pipeline3').style.display != 'none';
 }

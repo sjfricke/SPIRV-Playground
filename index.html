@@ -20,11 +20,31 @@
                 <button id="smallerText" class="settingButton">Smaller Text</button>
             </div>
             <div class="settings" id="settingBottom">
-                <label class="settingLabel" for="selectTool">Select Tool:</label>
-                <select id="selectTool">
-                </select>
-                <label class="settingLabel" for="commandFlags">command options</label>
-                <input type="text" id="commandFlags" name="commandFlags" spellcheck="false">
+                <div>
+                    <label class="settingLabel" for="selectTool">Select Tool:</label>
+                    <select class="toolOptions" id="selectTool">
+                    </select>
+                    <label class="settingLabel" for="commandFlags">command options</label>
+                    <input type="text" class="commandFlags" id="commandFlags" name="commandFlags" spellcheck="false">
+                    <button class="addRemovePipeline" id="AddPipeline2">+</button>
+                </div>
+                <div id="pipeline2">
+                    <label class="settingLabel" for="selectTool2">Select Tool:</label>
+                    <select class="toolOptions" id="selectTool2">
+                    </select>
+                    <label class="settingLabel" for="commandFlags2">command options</label>
+                    <input type="text" class="commandFlags" id="commandFlags2" name="commandFlags2" spellcheck="false">
+                    <button class="addRemovePipeline" id="AddPipeline3">+</button>
+                    <button class="addRemovePipeline" id="RemovePipeline2">-</button>
+                </div>
+                <div id="pipeline3">
+                    <label class="settingLabel" for="selectTool3">Select Tool:</label>
+                    <select class="toolOptions" id="selectTool3">
+                    </select>
+                    <label class="settingLabel" for="commandFlags3">command options</label>
+                    <input type="text" class="commandFlags" id="commandFlags3" name="commandFlags3" spellcheck="false">
+                    <button class="addRemovePipeline" id="RemovePipeline3">-</button>
+                </div>
             </div>
         </div>
 

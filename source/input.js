@@ -19,17 +19,28 @@ async function loadTools() {
     const response = await fetch("getTools", {method: 'GET'});
     const tools = await response.json();
 
-    var select = document.getElementById("selectTool");
-    for (let i = 0; i < tools.length; i++) {
-        let option = document.createElement('option');
-        option.text = option.value = tools[i];
-        select.appendChild(option);
+    for (let i = 0; i < document.getElementsByClassName('toolOptions').length; i++) {
+        let select = document.getElementsByClassName('toolOptions')[i];
+        for (let k = 0; k < tools.length; k++) {
+            let option = document.createElement('option');
+            option.text = option.value = tools[k];
+            select.appendChild(option);
+        }
     }
 
     // Load previous settings of working run
-    var localTool = localStorage.getItem('tool');
-    var startingTool = (localTool) ? localTool : tools[0];
+    let localTool = localStorage.getItem('tool');
+    let startingTool = (localTool) ? localTool : tools[0];
     setSavedValues(startingTool);
+
+    let localTool2 = localStorage.getItem('tool2');
+    let startingTool2 = (localTool2) ? localTool2 : 'spirv-opt';
+    setSavedValues2(startingTool2);
+
+    let localTool3 = localStorage.getItem('tool3');
+    let startingTool3 = (localTool3) ? localTool3 : 'spirv-cross';
+    setSavedValues3(startingTool3);
+
     // Set on first time
     inputEditor.setOption('mode', getSyntaxHighlighting(startingTool));
 
@@ -38,16 +49,39 @@ async function loadTools() {
         setSavedValues(element.target.value);
         inputEditor.setOption('mode', getSyntaxHighlighting(element.target.value));
     };
+    document.getElementById('selectTool2').onchange = function(element) {
+        setSavedValues2(element.target.value);
+    };
+    document.getElementById('selectTool3').onchange = function(element) {
+        setSavedValues3(element.target.value);
+    };
 }
 
 function setSavedValues(tool) {
-    var localSource = localStorage.getItem('source-' + tool);
-    var localFlags = localStorage.getItem('flags-' + tool);
-
+    // To set on init
     document.getElementById('selectTool').value = tool;
+
+    let localSource = localStorage.getItem('source-' + tool);
+    let localFlags = localStorage.getItem('flags-' + tool);
 
     inputEditor.setValue(localSource ? localSource : defaultSource(tool));
     document.getElementById('commandFlags').value = localFlags ? localFlags : defaultFlags(tool);
+}
+
+function setSavedValues2(tool) {
+    // To set on init
+    document.getElementById('selectTool2').value = tool;
+
+    let localFlags = localStorage.getItem('flags2-' + tool);
+    document.getElementById('commandFlags2').value = localFlags ? localFlags : defaultFlags(tool);
+}
+
+function setSavedValues3(tool) {
+    // To set on init
+    document.getElementById('selectTool3').value = tool;
+
+    let localFlags = localStorage.getItem('flags3-' + tool);
+    document.getElementById('commandFlags3').value = localFlags ? localFlags : defaultFlags(tool);
 }
 
 $('#copyToClipboard').on('click', function() {
@@ -161,3 +195,44 @@ function dragOverHandler(event) {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';  // Explicitly show this is a copy.
 }
+
+// TODO - improve this CSS hacking
+function loadPipelines() {
+    $('.mainColumn')[0].style.height = '93vh';
+    $('.mainColumn')[1].style.height = '93vh';
+    $('#moduleData')[0].style.marginTop = '6vh';
+    $('#pipeline2')[0].style.display = 'none';
+    $('#pipeline3')[0].style.display = 'none';
+}
+
+$('#AddPipeline2').on('click', function() {
+    $('.mainColumn')[0].style.height = '91vh';
+    $('.mainColumn')[1].style.height = '91vh';
+    $('#moduleData')[0].style.marginTop = '8vh';
+    $('#pipeline2')[0].style.display = 'block';
+    $('#pipeline3')[0].style.display = 'none';
+});
+
+$('#AddPipeline3').on('click', function() {
+    $('.mainColumn')[0].style.height = '89vh';
+    $('.mainColumn')[1].style.height = '89vh';
+    $('#moduleData')[0].style.marginTop = '10vh';
+    $('#pipeline2')[0].style.display = 'block';
+    $('#pipeline3')[0].style.display = 'block';
+});
+
+$('#RemovePipeline2').on('click', function() {
+    $('.mainColumn')[0].style.height = '93vh';
+    $('.mainColumn')[1].style.height = '93vh';
+    $('#moduleData')[0].style.marginTop = '6vh';
+    $('#pipeline2')[0].style.display = 'none';
+    $('#pipeline3')[0].style.display = 'none';
+});
+
+$('#RemovePipeline3').on('click', function() {
+    $('.mainColumn')[0].style.height = '91vh';
+    $('.mainColumn')[1].style.height = '91vh';
+    $('#moduleData')[0].style.marginTop = '8vh';
+    $('#pipeline2')[0].style.display = 'block';
+    $('#pipeline3')[0].style.display = 'none';
+});

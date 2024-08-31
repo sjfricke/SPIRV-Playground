@@ -68,7 +68,7 @@ body {
     margin-top: 6vh; /* same as moduleSettings */
 }
 
-#commandFlags {
+.commandFlags {
     width: 75%;
 }
 
@@ -103,6 +103,10 @@ body {
     text-align: center;
     cursor: pointer;
     border-radius: 4px;
+}
+
+.addRemovePipeline {
+    width: 25px;
 }
 
 .error {
