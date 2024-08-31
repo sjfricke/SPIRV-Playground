@@ -69,8 +69,7 @@ void computeMain(uint3 threadId : SV_DispatchThreadID)
     result[index] = buffer0[index] + buffer1[index];
 }`;
 
-    } else if (tool == 'spirv-val' || tool == 'spirv-opt' || tool == 'spirv-cross') {
-
+    } else if (tool == 'spirv-val' || tool == 'spirv-opt' || tool == 'spirv-cross' || tool == 'spirv-reflect') {
         return `; SPIR-V
 ; Version: 1.5
 ; Generator: Khronos Glslang Reference Front End; 11
@@ -146,6 +145,8 @@ function defaultFlags(tool) {
         return '-O --target-env vulkan1.2';
     } else if (tool == 'spirv-cross') {
         return '-V';
+    } else if (tool == 'spirv-reflect') {
+        return '';
     } else if (tool == 'gpuav') {
         return '--debug-printf';
     } else {

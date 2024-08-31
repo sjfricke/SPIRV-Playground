@@ -34,7 +34,7 @@ var allTools = {
         'exe': 'dxc',  // default
         'repo': 'DirectXShaderCompiler',
         'input': 'text',
-        'output': 'text',
+        'output': 'disassembly',
         'public': true
     },
     'glslangValidator': {
@@ -52,7 +52,7 @@ var allTools = {
         'exe': 'slangc',  // default
         'repo': 'slang',
         'input': 'text',
-        'output': 'text',
+        'output': 'disassembly',
         'public': true
     },
     'spirv-cross': {
@@ -62,6 +62,15 @@ var allTools = {
         'repo': 'SPIRV-Cross',
         'input': 'spirv',
         'output': 'text',
+        'public': true
+    },
+    'spirv-reflect': {
+        'name': 'spirv-reflect',
+        'found': false,
+        'exe': 'spirv-reflect',  // default
+        'repo': 'SPIRV-Reflect',
+        'input': 'spirv',
+        'output': 'status',
         'public': true
     },
     'spirv-val': {
@@ -87,7 +96,7 @@ var allTools = {
         'found': false,
         'exe': 'spirv-as',  // default
         'repo': 'SPIRV-Tools',
-        'input': 'text',
+        'input': 'disassembly',
         'output': 'spirv',
         'public': false
     },
@@ -97,7 +106,7 @@ var allTools = {
         'exe': 'spirv-dis',  // default
         'repo': 'SPIRV-Tools',
         'input': 'spirv',
-        'output': 'text',
+        'output': 'disassembly',
         'public': false
     },
     'gpuav': {
@@ -232,16 +241,16 @@ app.post('/compile', async (req, res) => {
     var lastTool = toolInfo;
     if (req.body.tool2) {
         var tool2Info = allTools[req.body.tool2];
-        if (tool2Info.input == 'text') {
+        if (tool2Info.input == 'text' && toolInfo.output != 'text') {
             result.success = false;
             result.error.stderr = `Pipeline 2 can not use ${req.body.tool2} because the input is not SPIR-V`;
             return res.send(result);
         }
         if (toolInfo.output == 'status') {
             result.success = false;
-            result.error.stderr = `Pipeline 2 can not use ${req.body.tool2} because the the previous pipeline is ${req.body.tool1}`;
+            result.error.stderr = `Pipeline 2 can not use ${req.body.tool2} because the the previous pipeline is ${req.body.tool}`;
             return res.send(result);
-        } else if (toolInfo.output == 'text') {
+        } else if (toolInfo.output == 'disassembly') {
             fs.writeFileSync(sourceFile.name, result.output);
             const spirvTargetEnv = getSpirvTargetEnv(req.body.flags2)
             const asCommand = `${allTools['spirv-as'].exe} ${sourceFile.name} -o ${sourceFile.name} ${spirvTargetEnv}`;
@@ -264,7 +273,7 @@ app.post('/compile', async (req, res) => {
 
         if (req.body.tool3) {
             var tool3Info = allTools[req.body.tool3];
-            if (tool3Info.input == 'text') {
+            if (tool3Info.input == 'text' && toolInfo.output != 'text') {
                 result.success = false;
                 result.error.stderr = `Pipeline 3 can not use ${req.body.tool3} because the input is not SPIR-V`;
                 return res.send(result);
@@ -275,7 +284,7 @@ app.post('/compile', async (req, res) => {
                 result.error.stderr =
                     `Pipeline 3 can not use ${req.body.tool3} because the the previous pipeline is ${req.body.tool2}`;
                 return res.send(result);
-            } else if (tool2Info.output == 'text') {
+            } else if (tool2Info.output == 'disassembly') {
                 fs.writeFileSync(sourceFile.name, result.output);
                 const spirvTargetEnv = getSpirvTargetEnv(req.body.flags3)
                 const asCommand = `${allTools['spirv-as'].exe} ${sourceFile.name} -o ${sourceFile.name} ${spirvTargetEnv}`;
