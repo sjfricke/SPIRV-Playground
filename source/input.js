@@ -1,3 +1,10 @@
+function commandFlagsEnter(event) {
+    if (event.which === 13) {  // Enter
+        event.preventDefault();
+        evaluateInputSource();
+    }
+}
+
 function loadKeyHooks() {
     inputEditor.setOption('extraKeys', {
         Enter: function() {
@@ -5,12 +12,9 @@ function loadKeyHooks() {
         }
     });
 
-    $('#commandFlags').on('keypress', function(event) {
-        if (event.which === 13) {  // Enter
-            event.preventDefault();
-            evaluateInputSource();
-        }
-    });
+    $('#commandFlags').on('keypress', commandFlagsEnter);
+    $('#commandFlags2').on('keypress', commandFlagsEnter);
+    $('#commandFlags3').on('keypress', commandFlagsEnter);
 
     // inputEditor.on('change', function() {})
 };

@@ -1,8 +1,7 @@
 'use strict';
 const express = require('express');
 const fs = require('fs');
-const tmp = require('tmp');
-const hasbin = require('hasbin');
+const path = require('path');
 const commander = require('commander');
 const { promisify } = require('util');
 const exec = promisify(require('child_process').exec)
@@ -120,6 +119,31 @@ var allTools = {
     },
 };
 
+
+function getPaths(bin) {
+	var envPath = (process.env.PATH || '');
+	var envExt = (process.env.PATHEXT || '');
+	return envPath.replace(/["]+/g, '').split(path.delimiter).map(function (chunk) {
+		return envExt.split(path.delimiter).map(function (ext) {
+			return path.join(chunk, bin + ext);
+		});
+	}).reduce(function (a, b) {
+		return a.concat(b);
+	});
+}
+
+function fileExistsSync(filePath) {
+	try {
+		return fs.statSync(filePath).isFile();
+	} catch (error) {
+		return false;
+	}
+}
+
+function hasBinary(bin) {
+	return getPaths(bin).some(fileExistsSync);
+}
+
 function SetUpTools() {
     const options = program.opts();
     for (const tool in allTools) {
@@ -135,7 +159,7 @@ function SetUpTools() {
                 console.log(`ERROR - ${tool} executable path doesn't exists ${item.exe}`)
                 process.exit()
             }
-        } else if (hasbin.sync(tool)) {
+        } else if (hasBinary(tool)) {
             item.found = true;  // use default exe
         } else if (item.exe) {
             // Tool that have no default, don't need to give warning
@@ -155,7 +179,7 @@ app.get('/getTools', async (req, res) => {
 });
 
 // Create a single temp file used every time
-const sourceFile = tmp.fileSync();
+const tmpFile = path.join(__dirname, 'tmp_file');
 const displayFileName = '[INPUT FILE]';
 
 // This is a mess because spirv-opt needs the '=' when setting it but things like spirv-as needs it without the '='
@@ -179,14 +203,14 @@ function buildCommand(toolInfo, flags) {
         flags = flags.replace(/--target-env\s+(\S+)/g, '--target-env=$1');
     }
 
-    var command = `${toolInfo.exe} ${flags} ${sourceFile.name}`;
+    var command = `${toolInfo.exe} ${flags} ${tmpFile}`;
     if (toolInfo.output == 'spirv') {
-        command += ` -o ${sourceFile.name}`
+        command += ` -o ${tmpFile}`
     }
 
     // Special case for tools that need it
     if (toolInfo.name == 'gpuav') {
-        command = `${toolInfo.exe} ${sourceFile.name} -o ${sourceFile.name} ${flags}`;
+        command = `${toolInfo.exe} ${tmpFile} -o ${tmpFile} ${flags}`;
     }
 
     return command;
@@ -203,7 +227,7 @@ app.post('/compile', async (req, res) => {
         'output': ''
     };
 
-    fs.writeFileSync(sourceFile.name, req.body.source);
+    fs.writeFileSync(tmpFile, req.body.source);
 
     var toolInfo = allTools[req.body.tool];
 
@@ -212,14 +236,14 @@ app.post('/compile', async (req, res) => {
         const spirvTargetEnv = getSpirvTargetEnv(req.body.flags);
         try {
             // Just override temp file, no need to keep original disassembly
-            const asCommand = `${allTools['spirv-as'].exe} ${sourceFile.name} -o ${sourceFile.name} ${spirvTargetEnv}`;
+            const asCommand = `${allTools['spirv-as'].exe} ${tmpFile} -o ${tmpFile} ${spirvTargetEnv}`;
             console.log(asCommand + '\n');
             await exec(asCommand);
         } catch (error) {
             result.success = false
-            result.error.cmd = error.cmd.replaceAll(sourceFile.name, displayFileName);
-            result.error.stdout = error.stdout.replaceAll(sourceFile.name, displayFileName);
-            result.error.stderr = error.stderr.replaceAll(sourceFile.name, displayFileName);
+            result.error.cmd = error.cmd.replaceAll(tmpFile, displayFileName);
+            result.error.stdout = error.stdout.replaceAll(tmpFile, displayFileName);
+            result.error.stderr = error.stderr.replaceAll(tmpFile, displayFileName);
             return res.send(result);
         }
     }
@@ -232,9 +256,9 @@ app.post('/compile', async (req, res) => {
         result.output = (await exec(command)).stdout;
     } catch (error) {
         result.success = false;
-        result.error.cmd = error.cmd.replaceAll(sourceFile.name, displayFileName);
-        result.error.stdout = error.stdout.replaceAll(sourceFile.name, displayFileName);
-        result.error.stderr = error.stderr.replaceAll(sourceFile.name, displayFileName);
+        result.error.cmd = error.cmd.replaceAll(tmpFile, displayFileName);
+        result.error.stdout = error.stdout.replaceAll(tmpFile, displayFileName);
+        result.error.stderr = error.stderr.replaceAll(tmpFile, displayFileName);
         return res.send(result);
     }
 
@@ -251,9 +275,9 @@ app.post('/compile', async (req, res) => {
             result.error.stderr = `Pipeline 2 can not use ${req.body.tool2} because the the previous pipeline is ${req.body.tool}`;
             return res.send(result);
         } else if (toolInfo.output == 'disassembly') {
-            fs.writeFileSync(sourceFile.name, result.output);
+            fs.writeFileSync(tmpFile, result.output);
             const spirvTargetEnv = getSpirvTargetEnv(req.body.flags2)
-            const asCommand = `${allTools['spirv-as'].exe} ${sourceFile.name} -o ${sourceFile.name} ${spirvTargetEnv}`;
+            const asCommand = `${allTools['spirv-as'].exe} ${tmpFile} -o ${tmpFile} ${spirvTargetEnv}`;
             console.log(asCommand + '\n');
             await exec(asCommand);  // TODO - error catch
         }
@@ -264,9 +288,9 @@ app.post('/compile', async (req, res) => {
             result.output = (await exec(command)).stdout;
         } catch (error) {
             result.success = false;
-            result.error.cmd = error.cmd.replaceAll(sourceFile.name, displayFileName);
-            result.error.stdout = error.stdout.replaceAll(sourceFile.name, displayFileName);
-            result.error.stderr = error.stderr.replaceAll(sourceFile.name, displayFileName);
+            result.error.cmd = error.cmd.replaceAll(tmpFile, displayFileName);
+            result.error.stdout = error.stdout.replaceAll(tmpFile, displayFileName);
+            result.error.stderr = error.stderr.replaceAll(tmpFile, displayFileName);
             return res.send(result);
         }
         lastTool = tool2Info;
@@ -285,9 +309,9 @@ app.post('/compile', async (req, res) => {
                     `Pipeline 3 can not use ${req.body.tool3} because the the previous pipeline is ${req.body.tool2}`;
                 return res.send(result);
             } else if (tool2Info.output == 'disassembly') {
-                fs.writeFileSync(sourceFile.name, result.output);
+                fs.writeFileSync(tmpFile, result.output);
                 const spirvTargetEnv = getSpirvTargetEnv(req.body.flags3)
-                const asCommand = `${allTools['spirv-as'].exe} ${sourceFile.name} -o ${sourceFile.name} ${spirvTargetEnv}`;
+                const asCommand = `${allTools['spirv-as'].exe} ${tmpFile} -o ${tmpFile} ${spirvTargetEnv}`;
                 console.log(asCommand + '\n');
                 await exec(asCommand);  // TODO - error catch
             }
@@ -298,9 +322,9 @@ app.post('/compile', async (req, res) => {
                 result.output = (await exec(command)).stdout;
             } catch (error) {
                 result.success = false;
-                result.error.cmd = error.cmd.replaceAll(sourceFile.name, displayFileName);
-                result.error.stdout = error.stdout.replaceAll(sourceFile.name, displayFileName);
-                result.error.stderr = error.stderr.replaceAll(sourceFile.name, displayFileName);
+                result.error.cmd = error.cmd.replaceAll(tmpFile, displayFileName);
+                result.error.stdout = error.stdout.replaceAll(tmpFile, displayFileName);
+                result.error.stderr = error.stderr.replaceAll(tmpFile, displayFileName);
                 return res.send(result);
             }
             lastTool = tool3Info;
@@ -309,7 +333,7 @@ app.post('/compile', async (req, res) => {
 
     if (result.success && lastTool.output == 'spirv') {
         // need to get out to spirv
-        const disCommand = `${allTools['spirv-dis'].exe} ${sourceFile.name}`;
+        const disCommand = `${allTools['spirv-dis'].exe} ${tmpFile}`;
         console.log(disCommand + '\n');
         result.output = (await exec(disCommand)).stdout;
     }
@@ -336,12 +360,12 @@ app.post('/dissemble', async (req, res) => {
         });
     });
 
-    fs.writeFileSync(sourceFile.name, buffer);
+    fs.writeFileSync(tmpFile, buffer);
 
     // Process the buffer or save it as a file
     var result = {'success': true, 'data': 'could not dissemble SPIR-V'};
 
-    const disCommand = `${allTools['spirv-dis'].exe} ${sourceFile.name}`;
+    const disCommand = `${allTools['spirv-dis'].exe} ${tmpFile}`;
     console.log(disCommand + '\n');
 
     try {
@@ -363,6 +387,5 @@ app.listen(port, () => {
 process.on('SIGTERM', shutDown);
 process.on('SIGINT', shutDown);
 function shutDown() {
-    sourceFile.removeCallback();
     process.exit(0);
 }
