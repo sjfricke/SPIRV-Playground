@@ -59,7 +59,6 @@ async function evaluateInputSource() {
     });
 
     const data = await response.json();
-    console.log(data);
     if (data.success) {
         if (lastTool == 'spirv-val') {
             outputEditor.setValue('VALID SPIR-V');
@@ -87,6 +86,11 @@ async function evaluateInputSource() {
         } else {
             error += data.error.stdout;
         }
+
+        // TODO - if we leave an un-closed quote, this gets in an infinite loop
+        // Might be because we are syntax highlighting for SPIR-V still
+        error = error.replaceAll("n't", "n not");
+
         outputEditor.setValue(error);
     }
 }
